@@ -1,0 +1,15 @@
+{
+  "name": "parametric-base-carcass",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Parametric 3-part base carcass with blind dado joinery",
+  "type": "module",
+  "main": "src/carcass/index.js",
+  "scripts": {
+    "test": "node --test test/**/*.test.js",
+    "demo": "npx --yes serve . -p 5173"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

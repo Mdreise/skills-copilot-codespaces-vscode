@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Parametric Base Carcass</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,600;9..40,700&family=Instrument+Serif:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="header">
+        <p class="eyebrow">3-part base carcass</p>
+        <h1>Left End · Right End · Bottom</h1>
+        <p class="lede">
+          Global 5/8" material with blind dado joinery (1/4" deep, 1/2" shoulder).
+          Change height, width, or depth — part stock and mortise/tenon features
+          recalculate instantly.
+        </p>
+      </header>
+
+      <section class="controls" aria-label="Carcass envelope">
+        <label>
+          <span>Height</span>
+          <input id="height" type="number" min="6" max="48" step="0.125" />
+          <abbr title="inches">in</abbr>
+        </label>
+        <label>
+          <span>Width</span>
+          <input id="width" type="number" min="6" max="60" step="0.125" />
+          <abbr title="inches">in</abbr>
+        </label>
+        <label>
+          <span>Depth</span>
+          <input id="depth" type="number" min="6" max="36" step="0.125" />
+          <abbr title="inches">in</abbr>
+        </label>
+      </section>
+
+      <section class="globals" aria-label="Global joinery parameters">
+        <h2>Globals</h2>
+        <dl id="globals"></dl>
+      </section>
+
+      <section class="parts" aria-label="Computed parts">
+        <article class="part" data-part="leftEnd">
+          <h2>Left End</h2>
+          <div class="svg-wrap" id="svg-left"></div>
+          <pre class="dims" id="dims-left"></pre>
+        </article>
+        <article class="part" data-part="rightEnd">
+          <h2>Right End</h2>
+          <div class="svg-wrap" id="svg-right"></div>
+          <pre class="dims" id="dims-right"></pre>
+        </article>
+        <article class="part" data-part="bottom">
+          <h2>Bottom</h2>
+          <div class="svg-wrap" id="svg-bottom"></div>
+          <pre class="dims" id="dims-bottom"></pre>
+        </article>
+      </section>
+    </div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
