@@ -259,9 +259,26 @@ body {
 
 .stock {
   fill: var(--stock);
-  stroke: var(--stock-edge);
-  stroke-width: 1.35;
+  stroke: none;
+}
+
+.cut-perimeter {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 1.55;
   stroke-linejoin: miter;
+  stroke-linecap: square;
+  pointer-events: none;
+}
+
+.cut-pocket {
+  fill: none;
+  stroke: var(--joinery);
+  stroke-width: 1.65;
+  stroke-dasharray: 2.4 1.6;
+  stroke-linejoin: miter;
+  stroke-linecap: square;
+  pointer-events: none;
 }
 
 .pocket {
@@ -274,23 +291,41 @@ body {
 .pocket-hatch {
   stroke: var(--joinery);
   stroke-width: 0.7;
-  stroke-opacity: 0.45;
+  stroke-opacity: 0.4;
   pointer-events: none;
-}
-
-.pocket-outline {
-  fill: none;
-  stroke: var(--joinery);
-  stroke-width: 1.75;
-  stroke-linejoin: miter;
-  stroke-linecap: square;
 }
 
 .guide {
   stroke: var(--stock-edge);
-  stroke-width: 1;
-  stroke-dasharray: 3 2;
-  opacity: 0.55;
+  stroke-width: 0.9;
+  stroke-dasharray: 2.5 1.8;
+  opacity: 0.45;
+}
+
+.dim-line,
+.dim-witness {
+  stroke: var(--ink);
+  stroke-width: 0.7;
+  fill: none;
+}
+
+.dim-arrow {
+  fill: var(--ink);
+  stroke: none;
+}
+
+.dim-label {
+  fill: var(--joinery);
+  font-family: "DM Sans", sans-serif;
+  font-size: 3.4px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.cut-legend {
+  fill: var(--muted) !important;
+  font-size: 2.6px !important;
+  letter-spacing: 0.05em;
 }
 
 .anno {

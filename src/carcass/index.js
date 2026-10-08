@@ -8,7 +8,14 @@ export {
   buildParts,
 } from './parts.js';
 export { BaseCarcass } from './BaseCarcass.js';
-export { fmtInch, renderEndSvg, renderBottomSvg } from './render2d.js';
+export {
+  fmtInch,
+  END_PAD_X,
+  dimHorizontal,
+  dimVertical,
+  renderEndSvg,
+  renderBottomSvg,
+} from './render2d.js';
 export {
   projectIso,
   explodeOffsets,
