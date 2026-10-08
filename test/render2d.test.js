@@ -3,92 +3,93 @@ import assert from 'node:assert/strict';
 import {
   BaseCarcass,
   GLOBAL,
-  END_PAD_X,
+  renderPartSvg,
   renderEndSvg,
   renderBottomSvg,
+  renderJointPreview,
 } from '../src/carcass/index.js';
 
-describe('renderEndSvg — internal dado pocket', () => {
-  it('draws the mortise as a pocket class inside the stock, not an external feature block', () => {
+describe('renderPartSvg — Face A machining', () => {
+  it('renders Face A dados as gray inset fill with dashed cut path', () => {
     const carcass = new BaseCarcass({ depth: 24 });
-    const svg = renderEndSvg(carcass.parts.leftEnd);
+    const svg = renderPartSvg(carcass.parts.leftEnd, { face: 'A' });
 
-    assert.match(svg, /class="stock"/);
-    assert.match(svg, /class="pocket"/);
-    assert.doesNotMatch(svg, /class="feature"/);
-    assert.match(svg, /Blind dado pocket/);
+    assert.match(svg, /data-face="A"/);
+    assert.match(svg, /class="dado-fill"/);
+    assert.match(svg, /class="dado-cut"/);
+    assert.match(svg, /Dado: 0\.25" deep × 0\.625" wide/);
   });
 
-  it('overlays solid perimeter cuts and dashed pocket cuts', () => {
-    const carcass = new BaseCarcass({ depth: 24 });
-    const svg = renderEndSvg(carcass.parts.leftEnd);
+  it('shows a solid red 0.5" Stop tag at the blind shoulder', () => {
+    const carcass = new BaseCarcass();
+    const svg = renderPartSvg(carcass.parts.leftEnd, { face: 'A' });
 
-    assert.match(svg, /class="cut-perimeter"/);
-    assert.match(svg, /data-cut="perimeter"/);
-    assert.match(svg, /class="cut-pocket"/);
-    assert.match(svg, /data-cut="blind-dado"/);
-    assert.match(svg, /solid = perimeter · dashed = pocket/);
-  });
-
-  it('places a 0.25" deep pocket starting 0.5" from the front and running to the rear', () => {
-    const depth = 24;
-    const carcass = new BaseCarcass({ depth });
-    const svg = renderEndSvg(carcass.parts.leftEnd);
-
-    const expectedPocketX = END_PAD_X + GLOBAL.blindShoulder;
-    const expectedPocketW = depth - GLOBAL.blindShoulder;
-
-    assert.equal(GLOBAL.dadoDepth, 0.25);
+    assert.match(svg, /class="stop-tag"/);
+    assert.match(svg, /data-stop="0\.5"/);
+    assert.match(svg, /0\.5" Stop/);
     assert.equal(GLOBAL.blindShoulder, 0.5);
-    assert.match(svg, new RegExp(`x="${expectedPocketX}"`));
-    assert.match(svg, new RegExp(`width="${expectedPocketW}"`));
-    assert.match(svg, />front</);
-    assert.match(svg, />rear</);
   });
 
-  it('draws an explicit 0.5" front shoulder dimension callout on the graphic', () => {
-    const carcass = new BaseCarcass({ depth: 24 });
-    const svg = renderEndSvg(carcass.parts.leftEnd);
+  it('draws confirmat through-bores with crosshairs and pitch', () => {
+    const carcass = new BaseCarcass();
+    const svg = renderPartSvg(carcass.parts.leftEnd, { face: 'A' });
 
-    assert.match(svg, /data-dim="front-shoulder"/);
-    assert.match(svg, /data-value="0\.5"/);
-    assert.match(svg, /class="dim-label"[^>]*>0\.5"/);
-    assert.match(svg, /class="dim-line"/);
-    assert.match(svg, /class="dim-witness"/);
+    assert.match(svg, /class="confirmat-through"/);
+    assert.match(svg, /class="through-bore"/);
+    assert.match(svg, /class="through-cross"/);
+    assert.match(svg, /mm pitch/);
   });
 
-  it('keeps the pocket fully inside the part depth span', () => {
-    const depth = 20;
-    const carcass = new BaseCarcass({ depth });
-    const svg = renderEndSvg(carcass.parts.rightEnd, { mirror: true });
+  it('draws rear rabbet hatch and excludes rear edgeband', () => {
+    const carcass = new BaseCarcass();
+    const svg = renderPartSvg(carcass.parts.leftEnd, { face: 'A' });
 
-    const pocketStart = GLOBAL.blindShoulder;
-    const pocketEnd = pocketStart + (depth - GLOBAL.blindShoulder);
-    assert.ok(pocketStart > 0);
-    assert.equal(pocketEnd, depth);
-    assert.match(svg, /scale\(-1,1\)/);
-    assert.match(svg, new RegExp(`width="${depth - GLOBAL.blindShoulder}"`));
-    assert.match(svg, /data-dim="front-shoulder"/);
+    assert.match(svg, /class="rabbet-machine"/);
+    assert.match(svg, /class="rabbet-fill"/);
+    assert.match(svg, /data-edge="front"/);
+    assert.doesNotMatch(svg, /data-edge="rear"/);
   });
 });
 
-describe('renderBottomSvg', () => {
-  it('keeps tenon paths inside the stock boundary with cut overlays', () => {
+describe('renderPartSvg — Face B hidden detail', () => {
+  it('renders dados as light-blue dashed hidden detail only', () => {
     const carcass = new BaseCarcass();
-    const svg = renderBottomSvg(carcass.parts.bottom);
-    assert.match(svg, /class="stock"/);
-    assert.match(svg, /class="pocket"/);
-    assert.match(svg, /class="cut-perimeter"/);
-    assert.match(svg, /class="cut-pocket"/);
-    assert.match(svg, /data-cut="tongue-left"/);
-    assert.match(svg, /inside part boundary/);
-  });
+    const svg = renderPartSvg(carcass.parts.leftEnd, { face: 'B' });
 
-  it('shows the 0.5" front shoulder dimension on the deck graphic', () => {
+    assert.match(svg, /data-face="B"/);
+    assert.match(svg, /class="dado-hidden"/);
+    assert.doesNotMatch(svg, /class="dado-fill"/);
+    assert.doesNotMatch(svg, /0\.5" Stop/);
+    assert.doesNotMatch(svg, /confirmat-through/);
+  });
+});
+
+describe('renderPartSvg — bottom deck', () => {
+  it('shows tongues, pilots with green depth callouts, and shoulder stop context', () => {
     const carcass = new BaseCarcass();
-    const svg = renderBottomSvg(carcass.parts.bottom);
-    assert.match(svg, /data-dim="front-shoulder"/);
-    assert.match(svg, /data-value="0\.5"/);
-    assert.match(svg, /class="dim-label"[^>]*>0\.5"/);
+    const svg = renderPartSvg(carcass.parts.bottom, { face: 'A' });
+
+    assert.match(svg, /class="tenon-machine"/);
+    assert.match(svg, /class="confirmat-pilot"/);
+    assert.match(svg, /Ø5 mm × 35 mm deep/);
+    assert.match(svg, /class="rabbet-machine"/);
+  });
+});
+
+describe('legacy wrappers', () => {
+  it('renderEndSvg / renderBottomSvg delegate to Face A part cards', () => {
+    const carcass = new BaseCarcass();
+    assert.match(renderEndSvg(carcass.parts.leftEnd), /data-face="A"/);
+    assert.match(renderBottomSvg(carcass.parts.bottom), /data-face="A"/);
+  });
+});
+
+describe('renderJointPreview', () => {
+  it('shows tongue entering dado with confirmat indicator', () => {
+    const svg = renderJointPreview('left');
+    assert.match(svg, /data-joint-preview="blind-dado-confirmat"/);
+    assert.match(svg, /iso-pocket/);
+    assert.match(svg, /iso-tongue/);
+    assert.match(svg, /joint-screw/);
   });
 });

@@ -1,5 +1,14 @@
-export { GLOBAL, DEFAULT_CARCASS } from './parameters.js';
-export { bottomMortise, bottomTenon } from './joinery.js';
+export { GLOBAL, DEFAULT_CARCASS, inchToMm, mmToInch } from './parameters.js';
+export {
+  bottomMortise,
+  bottomTenon,
+  endBottomDado,
+  endBackRabbet,
+  endConfirmatThrough,
+  bottomBackRabbet,
+  bottomConfirmatPilots,
+  confirmatCenters,
+} from './joinery.js';
 export {
   bottomLength,
   leftEnd,
@@ -16,6 +25,8 @@ export {
   renderEndSvg,
   renderBottomSvg,
 } from './render2d.js';
+export { renderPartSvg } from './renderPart.js';
+export { renderJointPreview } from './renderJointPreview.js';
 export {
   projectIso,
   explodeOffsets,

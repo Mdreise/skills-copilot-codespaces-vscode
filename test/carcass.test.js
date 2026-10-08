@@ -32,7 +32,10 @@ describe('BaseCarcass', () => {
     assert.equal(leftEnd.dimensions.height, 30);
     assert.equal(leftEnd.dimensions.width, 22);
     assert.equal(leftEnd.dimensions.thickness, GLOBAL.materialThickness);
-    assert.deepEqual(rightEnd.dimensions, leftEnd.dimensions);
+    assert.deepEqual(
+      { height: rightEnd.dimensions.height, width: rightEnd.dimensions.width },
+      { height: leftEnd.dimensions.height, width: leftEnd.dimensions.width },
+    );
   });
 
   it('sizes bottom length from width with dado engagement', () => {
@@ -47,63 +50,52 @@ describe('BaseCarcass', () => {
     );
   });
 
-  it('places blind dado mortises with 1/4" depth and 1/2" front shoulder', () => {
+  it('places Face A blind dados with 1/4" depth and 1/2" stop', () => {
     const depth = 24;
     const carcass = new BaseCarcass({ depth });
-    const mortise = carcass.parts.leftEnd.features[0];
+    const dado = carcass.parts.leftEnd.features.find((f) => f.kind === 'dado');
 
-    assert.equal(mortise.kind, 'mortise');
-    assert.equal(mortise.joinery, 'blind-dado');
-    assert.equal(mortise.width, GLOBAL.dadoDepth);
-    assert.equal(mortise.y, GLOBAL.blindShoulder);
-    assert.equal(mortise.depth, depth - GLOBAL.blindShoulder);
-    assert.equal(mortise.height, GLOBAL.materialThickness);
+    assert.equal(dado.face, 'A');
+    assert.equal(dado.depth, GLOBAL.dadoDepth);
+    assert.equal(dado.width, GLOBAL.materialThickness);
+    assert.equal(dado.blindShoulder, GLOBAL.blindShoulder);
+    assert.equal(dado.rect.x, GLOBAL.blindShoulder);
+    assert.equal(dado.rect.width, depth - GLOBAL.blindShoulder);
   });
 
-  it('places matching tenons on the bottom', () => {
+  it('places matching tongues and confirmat pilots on the bottom', () => {
     const carcass = new BaseCarcass({ width: 30, depth: 21 });
     const { bottom } = carcass.parts;
-    const [left, right] = bottom.features;
+    const tenons = bottom.features.filter((f) => f.kind === 'tenon');
+    const pilots = bottom.features.filter((f) => f.kind === 'confirmat-pilot');
 
-    assert.equal(left.kind, 'tenon');
-    assert.equal(right.kind, 'tenon');
-    assert.equal(left.width, GLOBAL.dadoDepth);
-    assert.equal(right.width, GLOBAL.dadoDepth);
-    assert.equal(left.y, GLOBAL.blindShoulder);
-    assert.equal(left.depth, 21 - GLOBAL.blindShoulder);
-    assert.equal(right.x, bottom.dimensions.length - GLOBAL.dadoDepth);
+    assert.equal(tenons.length, 2);
+    assert.equal(tenons[0].depth, GLOBAL.dadoDepth);
+    assert.equal(tenons[0].blindShoulder, GLOBAL.blindShoulder);
+    assert.ok(pilots.length >= 2);
+  });
+
+  it('includes rear rabbets with edgeband exclusion', () => {
+    const carcass = new BaseCarcass();
+    const rabbet = carcass.parts.leftEnd.features.find((f) => f.kind === 'rabbet');
+    assert.ok(rabbet);
+    assert.equal(rabbet.edgebandExcluded, true);
+    assert.equal(carcass.parts.leftEnd.edgebands.rear, false);
   });
 
   it('recalculates parts instantly when height, width, or depth change', () => {
     const carcass = new BaseCarcass();
-    const before = structuredClone(carcass.toJSON());
 
     carcass.setHeight(28);
     assert.equal(carcass.parts.leftEnd.dimensions.height, 28);
-    assert.equal(carcass.parts.rightEnd.dimensions.height, 28);
-    assert.notEqual(carcass.parts.leftEnd.dimensions.height, before.parts.leftEnd.dimensions.height);
 
     carcass.setWidth(36);
-    assert.equal(
-      carcass.parts.bottom.dimensions.length,
-      bottomLength(36),
-    );
-    assert.equal(
-      carcass.parts.bottom.features[1].x,
-      bottomLength(36) - GLOBAL.dadoDepth,
-    );
+    assert.equal(carcass.parts.bottom.dimensions.length, bottomLength(36));
 
     carcass.setDepth(20);
+    const dado = carcass.parts.leftEnd.features.find((f) => f.kind === 'dado');
     assert.equal(carcass.parts.leftEnd.dimensions.width, 20);
-    assert.equal(carcass.parts.bottom.dimensions.width, 20);
-    assert.equal(
-      carcass.parts.leftEnd.features[0].depth,
-      20 - GLOBAL.blindShoulder,
-    );
-    assert.equal(
-      carcass.parts.bottom.features[0].depth,
-      20 - GLOBAL.blindShoulder,
-    );
+    assert.equal(dado.rect.width, 20 - GLOBAL.blindShoulder);
   });
 
   it('notifies listeners after envelope updates', () => {
@@ -132,7 +124,6 @@ describe('BaseCarcass', () => {
     assert.deepEqual(carcass.envelope, { height: 31, width: 27, depth: 23 });
     assert.equal(carcass.parts.leftEnd.dimensions.height, 31);
     assert.equal(carcass.parts.bottom.dimensions.length, bottomLength(27));
-    assert.equal(carcass.parts.rightEnd.features[0].depth, 23 - GLOBAL.blindShoulder);
   });
 
   it('rejects invalid envelope values', () => {

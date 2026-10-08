@@ -1,15 +1,18 @@
 /**
  * Part builders for the 3-part base carcass.
- * Dimensions and joinery features are pure functions of
- * global parameters + live carcass height / width / depth.
+ * Each part carries Face A (machining) / Face B metadata and
+ * joinery features (dados, rabbets, confirmats, tongues).
  */
 
 import { GLOBAL } from './parameters.js';
-import { bottomMortise, bottomTenon } from './joinery.js';
-
-/**
- * @typedef {import('./joinery.js').Box3} Box3
- */
+import {
+  endBottomDado,
+  endBackRabbet,
+  endConfirmatThrough,
+  bottomTenon,
+  bottomBackRabbet,
+  bottomConfirmatPilots,
+} from './joinery.js';
 
 /**
  * Outside length of the bottom panel (left→right), including
@@ -34,12 +37,28 @@ export function leftEnd(height, depth) {
     name: 'Left End',
     role: 'end',
     side: 'left',
+    /** Face A = inside (machining). Face B = outside finished. */
+    machiningFace: 'A',
+    faceLabels: { A: 'Face A · Inside (machine)', B: 'Face B · Outside' },
     dimensions: {
       height,
       width: depth,
       thickness: materialThickness,
+      /** UV for face view */
+      u: depth,
+      v: height,
     },
-    features: [bottomMortise('left', depth)],
+    edgebands: {
+      front: true,
+      rear: false, // broken by back rabbet
+      top: true,
+      bottom: false, // sits on floor / in toe context
+    },
+    features: [
+      endBottomDado('left', depth, height),
+      endBackRabbet('left', depth, height),
+      ...endConfirmatThrough('left', depth),
+    ],
   };
 }
 
@@ -54,12 +73,26 @@ export function rightEnd(height, depth) {
     name: 'Right End',
     role: 'end',
     side: 'right',
+    machiningFace: 'A',
+    faceLabels: { A: 'Face A · Inside (machine)', B: 'Face B · Outside' },
     dimensions: {
       height,
       width: depth,
       thickness: materialThickness,
+      u: depth,
+      v: height,
     },
-    features: [bottomMortise('right', depth)],
+    edgebands: {
+      front: true,
+      rear: false,
+      top: true,
+      bottom: false,
+    },
+    features: [
+      endBottomDado('right', depth, height),
+      endBackRabbet('right', depth, height),
+      ...endConfirmatThrough('right', depth),
+    ],
   };
 }
 
@@ -75,21 +108,32 @@ export function bottom(width, depth) {
     id: 'bottom',
     name: 'Bottom',
     role: 'bottom',
+    machiningFace: 'A',
+    faceLabels: { A: 'Face A · Top (machine)', B: 'Face B · Underside' },
     dimensions: {
       length,
       width: depth,
       thickness: materialThickness,
+      u: length,
+      v: depth,
+    },
+    edgebands: {
+      front: true,
+      rear: false,
+      left: false, // tenon into dado
+      right: false,
     },
     features: [
       bottomTenon('left', length, depth),
       bottomTenon('right', length, depth),
+      bottomBackRabbet(length, depth),
+      ...bottomConfirmatPilots('left', depth),
+      ...bottomConfirmatPilots('right', depth),
     ],
   };
 }
 
 /**
- * Build the full 3-part set for a carcass envelope.
- *
  * @param {{ height: number, width: number, depth: number }} envelope
  */
 export function buildParts(envelope) {

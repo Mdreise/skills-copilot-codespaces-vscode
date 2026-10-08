@@ -2,8 +2,9 @@ import {
   BaseCarcass,
   GLOBAL,
   fmtInch,
-  renderEndSvg,
-  renderBottomSvg,
+  inchToMm,
+  renderPartSvg,
+  renderJointPreview,
   renderIsoAssembly,
   explodeOffsets,
 } from '../src/carcass/index.js';
@@ -12,6 +13,12 @@ const carcass = new BaseCarcass();
 
 /** @type {'parts' | 'iso'} */
 let viewMode = 'parts';
+
+/** @type {Record<string, 'A' | 'B'>} */
+const faces = { left: 'A', right: 'A', bottom: 'A' };
+
+/** @type {Record<string, boolean>} */
+const jointOpen = { left: false, right: false, bottom: false };
 
 const heightInput = document.querySelector('#height');
 const widthInput = document.querySelector('#width');
@@ -27,27 +34,32 @@ function renderGlobals() {
   globalsEl.innerHTML = `
     <div><dt>Material</dt><dd>${fmtInch(GLOBAL.materialThickness)}"</dd></div>
     <div><dt>Dado depth</dt><dd>${fmtInch(GLOBAL.dadoDepth)}"</dd></div>
-    <div><dt>Blind shoulder</dt><dd>${fmtInch(GLOBAL.blindShoulder)}"</dd></div>
+    <div><dt>Blind stop</dt><dd>${fmtInch(GLOBAL.blindShoulder)}"</dd></div>
+    <div><dt>Back rabbet</dt><dd>${fmtInch(GLOBAL.backThickness)}"</dd></div>
+    <div><dt>Confirmat</dt><dd>Ø${Math.round(inchToMm(GLOBAL.confirmatDiameter))} mm</dd></div>
+    <div><dt>Pitch</dt><dd>${Math.round(inchToMm(GLOBAL.confirmatPitch))} mm</dd></div>
   `;
 }
 
 function endDims(part) {
-  const m = part.features[0];
+  const dado = part.features.find((f) => f.kind === 'dado');
+  const throughs = part.features.filter((f) => f.kind === 'confirmat-through');
   const d = part.dimensions;
   return [
     `${fmtInch(d.height)}" H × ${fmtInch(d.width)}" D × ${fmtInch(d.thickness)}" T`,
-    `pocket: ${fmtInch(m.width)}" deep × ${fmtInch(m.height)}" tall × ${fmtInch(m.depth)}" long`,
-    `starts ${fmtInch(m.y)}" from front → rear`,
+    `Face A dado: ${fmtInch(dado.depth)}" deep × ${fmtInch(dado.width)}" wide · ${fmtInch(dado.blindShoulder)}" stop`,
+    `Confirmats: ${throughs.length}× Ø${Math.round(inchToMm(GLOBAL.confirmatDiameter))} mm through`,
   ].join('\n');
 }
 
 function bottomDims(part) {
+  const tenon = part.features.find((f) => f.kind === 'tenon');
+  const pilots = part.features.filter((f) => f.kind === 'confirmat-pilot');
   const d = part.dimensions;
-  const t = part.features[0];
   return [
     `${fmtInch(d.length)}" L × ${fmtInch(d.width)}" D × ${fmtInch(d.thickness)}" T`,
-    `tenons: ${fmtInch(t.width)}" long × ${fmtInch(t.depth)}" deep run`,
-    `front shoulder: ${fmtInch(t.y)}"`,
+    `Tongues: ${fmtInch(tenon.depth)}" × ${fmtInch(tenon.length)}" · ${fmtInch(tenon.blindShoulder)}" stop`,
+    `Pilots: ${pilots.length}× Ø${Math.round(inchToMm(GLOBAL.confirmatDiameter))} × ${Math.round(inchToMm(GLOBAL.confirmatPilotDepth))} mm deep`,
   ].join('\n');
 }
 
@@ -56,8 +68,32 @@ function isoDims() {
   return [
     `explode: left ${fmtInch(Math.abs(ex.leftX))}" −X · right ${fmtInch(ex.rightX)}" +X`,
     `deck ${fmtInch(Math.abs(ex.bottomZ))}" −Z (tongues align to pockets)`,
-    `pocket ${fmtInch(GLOBAL.dadoDepth)}" deep · shoulder ${fmtInch(GLOBAL.blindShoulder)}"`,
+    `pocket ${fmtInch(GLOBAL.dadoDepth)}" deep · stop ${fmtInch(GLOBAL.blindShoulder)}"`,
   ].join('\n');
+}
+
+function partByKey(key) {
+  if (key === 'left') return carcass.parts.leftEnd;
+  if (key === 'right') return carcass.parts.rightEnd;
+  return carcass.parts.bottom;
+}
+
+function svgId(key) {
+  if (key === 'left') return '#svg-left';
+  if (key === 'right') return '#svg-right';
+  return '#svg-bottom';
+}
+
+function jointId(key) {
+  if (key === 'left') return '#joint-left';
+  if (key === 'right') return '#joint-right';
+  return '#joint-bottom';
+}
+
+function dimsId(key) {
+  if (key === 'left') return '#dims-left';
+  if (key === 'right') return '#dims-right';
+  return '#dims-bottom';
 }
 
 function setView(mode) {
@@ -76,14 +112,38 @@ function setView(mode) {
 
   viewHint.textContent = isIso
     ? 'Isometric explode: side pockets and deck tongues stay visible in relation.'
-    : 'Flat part canvases with internal dado pockets and deck tongues.';
+    : 'Part cards with Face A/B flip and joint preview.';
 
   render();
 }
 
-function render() {
-  const { leftEnd, rightEnd, bottom } = carcass.parts;
+function renderPartCard(key) {
+  const part = partByKey(key);
+  const face = faces[key];
+  document.querySelector(svgId(key)).innerHTML = renderPartSvg(part, { face });
+  document.querySelector(dimsId(key)).textContent =
+    key === 'bottom' ? bottomDims(part) : endDims(part);
 
+  const flipBtn = document.querySelector(`.face-flip[data-target="${key}"]`);
+  flipBtn.setAttribute('aria-pressed', String(face === 'B'));
+  flipBtn.classList.toggle('is-active', face === 'B');
+  flipBtn.textContent =
+    face === 'A' ? 'Flip Part (Face A / B)' : 'Flip Part (Face B / A)';
+
+  const jointEl = document.querySelector(jointId(key));
+  const jointBtn = document.querySelector(`.joint-toggle[data-target="${key}"]`);
+  const open = jointOpen[key];
+  jointBtn.setAttribute('aria-pressed', String(open));
+  jointBtn.classList.toggle('is-active', open);
+  jointEl.classList.toggle('is-hidden', !open);
+  jointEl.hidden = !open;
+  if (open) {
+    const side = key === 'right' ? 'right' : 'left';
+    jointEl.innerHTML = renderJointPreview(side);
+  }
+}
+
+function render() {
   heightInput.value = String(carcass.height);
   widthInput.value = String(carcass.width);
   depthInput.value = String(carcass.depth);
@@ -96,15 +156,9 @@ function render() {
     return;
   }
 
-  document.querySelector('#svg-left').innerHTML = renderEndSvg(leftEnd);
-  document.querySelector('#svg-right').innerHTML = renderEndSvg(rightEnd, {
-    mirror: true,
-  });
-  document.querySelector('#svg-bottom').innerHTML = renderBottomSvg(bottom);
-
-  document.querySelector('#dims-left').textContent = endDims(leftEnd);
-  document.querySelector('#dims-right').textContent = endDims(rightEnd);
-  document.querySelector('#dims-bottom').textContent = bottomDims(bottom);
+  renderPartCard('left');
+  renderPartCard('right');
+  renderPartCard('bottom');
 }
 
 function bind(input, setter) {
@@ -129,3 +183,19 @@ bind(depthInput, (v) => carcass.setDepth(v));
 
 viewPartsBtn.addEventListener('click', () => setView('parts'));
 viewIsoBtn.addEventListener('click', () => setView('iso'));
+
+document.querySelectorAll('.face-flip').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const key = btn.getAttribute('data-target');
+    faces[key] = faces[key] === 'A' ? 'B' : 'A';
+    renderPartCard(key);
+  });
+});
+
+document.querySelectorAll('.joint-toggle').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const key = btn.getAttribute('data-target');
+    jointOpen[key] = !jointOpen[key];
+    renderPartCard(key);
+  });
+});

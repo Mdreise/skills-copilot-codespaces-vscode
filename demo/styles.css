@@ -184,6 +184,12 @@ body {
   margin: 0;
 }
 
+@media (min-width: 881px) {
+  .globals dl {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
 .globals div {
   padding: 0.75rem 0.9rem;
   background: rgba(255, 251, 242, 0.55);
@@ -215,6 +221,66 @@ body {
   border: 1px solid rgba(42, 36, 28, 0.1);
   box-shadow: var(--shadow);
   animation: rise 420ms ease both;
+}
+
+.part-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.55rem;
+  margin-bottom: 0.55rem;
+}
+
+.part-head h2 {
+  margin: 0;
+}
+
+.part-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.face-flip,
+.joint-toggle {
+  appearance: none;
+  border: 1px solid rgba(42, 36, 28, 0.2);
+  background: rgba(255, 251, 242, 0.9);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.55rem;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.face-flip:hover,
+.joint-toggle:hover {
+  border-color: var(--focus);
+}
+
+.face-flip.is-active,
+.joint-toggle.is-active {
+  background: var(--ink);
+  color: #f7f1e4;
+  border-color: var(--ink);
+}
+
+.joint-thumb {
+  margin-top: 0.55rem;
+  padding: 0.45rem;
+  background: #f7f1e4;
+  border: 1px solid rgba(42, 36, 28, 0.1);
+  min-height: 140px;
+}
+
+.joint-thumb svg {
+  width: 100%;
+  height: 140px;
 }
 
 .part:nth-child(2) {
@@ -265,41 +331,135 @@ body {
 .cut-perimeter {
   fill: none;
   stroke: var(--line);
-  stroke-width: 1.55;
+  stroke-width: 0.12;
   stroke-linejoin: miter;
-  stroke-linecap: square;
   pointer-events: none;
 }
 
-.cut-pocket {
-  fill: none;
-  stroke: var(--joinery);
-  stroke-width: 1.65;
-  stroke-dasharray: 2.4 1.6;
-  stroke-linejoin: miter;
-  stroke-linecap: square;
-  pointer-events: none;
-}
-
-.pocket {
-  fill: var(--joinery-fill);
+/* Face A — machining dado: 15% gray fill + dashed pocket perimeter */
+.dado-fill {
+  fill: rgba(60, 60, 60, 0.15);
   stroke: none;
-  pointer-events: none;
-  transition: fill 180ms ease;
 }
 
-.pocket-hatch {
-  stroke: var(--joinery);
+.dado-cut {
+  fill: none;
+  stroke: #333;
+  stroke-width: 0.11;
+  stroke-dasharray: 0.35 0.25;
+}
+
+.dado-hidden,
+.rabbet-hidden,
+.tenon-hidden {
+  fill: rgba(106, 167, 216, 0.08);
+  stroke: #4f90c8;
+  stroke-width: 0.2;
+  stroke-dasharray: 0.55 0.35;
+}
+
+.stop-tag-bg {
+  fill: #c0392b;
+  stroke: none;
+}
+
+.stop-tag-label {
+  fill: #fff;
+  font-family: "DM Sans", sans-serif;
+  font-size: 1.35px;
+  font-weight: 700;
+}
+
+.callout-leader {
+  stroke: #333;
+  stroke-width: 0.08;
+}
+
+.callout-arrow {
+  fill: #333;
+}
+
+.callout-label {
+  fill: #222;
+  font-family: "DM Sans", sans-serif;
+  font-size: 1.45px;
+  font-weight: 700;
+}
+
+.rabbet-hatch-line {
+  stroke: #5c564c;
   stroke-width: 0.7;
-  stroke-opacity: 0.4;
-  pointer-events: none;
 }
 
-.guide {
-  stroke: var(--stock-edge);
-  stroke-width: 0.9;
-  stroke-dasharray: 2.5 1.8;
-  opacity: 0.45;
+.rabbet-cut {
+  fill: none;
+  stroke: #444;
+  stroke-width: 0.1;
+  stroke-dasharray: 0.3 0.2;
+}
+
+.rabbet-label {
+  fill: #333;
+  font-family: "DM Sans", sans-serif;
+  font-size: 1.2px;
+  font-weight: 700;
+}
+
+.tenon-fill {
+  fill: rgba(60, 60, 60, 0.12);
+}
+
+.tenon-cut {
+  fill: none;
+  stroke: #333;
+  stroke-width: 0.1;
+  stroke-dasharray: 0.35 0.25;
+}
+
+.edgeband {
+  stroke: #2f6f4e;
+  stroke-width: 0.28;
+  stroke-linecap: butt;
+}
+
+.through-bore {
+  fill: #111;
+  stroke: none;
+}
+
+.through-cross {
+  stroke: #f7f1e4;
+  stroke-width: 0.05;
+}
+
+.pilot-shaft {
+  stroke: #1f8a4c;
+  stroke-width: 0.12;
+}
+
+.pilot-arrow {
+  fill: #1f8a4c;
+}
+
+.pilot-label {
+  fill: #1f8a4c;
+  font-family: "DM Sans", sans-serif;
+  font-size: 1.15px;
+  font-weight: 700;
+}
+
+.pitch-dim .dim-line,
+.pitch-dim .dim-witness {
+  stroke: #111;
+  stroke-width: 0.07;
+}
+
+.pitch-dim .dim-label,
+.dim-label {
+  fill: #222;
+  font-family: "DM Sans", sans-serif;
+  font-size: 1.3px;
+  font-weight: 700;
 }
 
 .dim-line,
@@ -309,29 +469,17 @@ body {
   fill: none;
 }
 
-.dim-arrow {
-  fill: var(--ink);
-  stroke: none;
-}
-
-.dim-label {
-  fill: var(--joinery);
-  font-family: "DM Sans", sans-serif;
-  font-size: 3.4px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-.cut-legend {
+.face-badge {
   fill: var(--muted) !important;
-  font-size: 2.6px !important;
-  letter-spacing: 0.05em;
+  font-size: 1.5px !important;
+  text-transform: none !important;
+  letter-spacing: 0.02em !important;
 }
 
 .anno {
   fill: var(--ink);
   font-family: "DM Sans", sans-serif;
-  font-size: 3.2px;
+  font-size: 1.6px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -343,12 +491,13 @@ body {
   font-weight: 500;
 }
 
-.part:hover .pocket {
-  fill: rgba(181, 74, 42, 0.35);
+.joint-screw {
+  stroke: #111;
+  stroke-width: 0.12;
 }
 
-.part:hover .pocket-outline {
-  stroke-width: 2;
+.joint-screw-head {
+  fill: #111;
 }
 
 .dims {

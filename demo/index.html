@@ -18,9 +18,8 @@
         <p class="eyebrow">3-part base carcass</p>
         <h1>Left End · Right End · Bottom</h1>
         <p class="lede">
-          Global 5/8" material with blind dado joinery (1/4" deep, 1/2" shoulder).
-          Change height, width, or depth — part stock and mortise/tenon features
-          recalculate instantly.
+          Shop-floor joinery cards: Face A/B machining, blind dados, rear rabbets,
+          and confirmat bores — clear before CNC.
         </p>
       </header>
 
@@ -58,24 +57,57 @@
           </button>
         </div>
         <p class="view-hint" id="view-hint">
-          Flat part canvases with internal dado pockets and deck tongues.
+          Part cards with Face A/B flip and joint preview.
         </p>
       </section>
 
       <section class="parts" id="parts-view" aria-label="Computed parts">
         <article class="part" data-part="leftEnd">
-          <h2>Left End</h2>
+          <header class="part-head">
+            <h2>Left End</h2>
+            <div class="part-actions">
+              <button type="button" class="face-flip" data-target="left" aria-pressed="false">
+                Flip Part (Face A / B)
+              </button>
+              <button type="button" class="joint-toggle" data-target="left" aria-pressed="false">
+                Joint Preview
+              </button>
+            </div>
+          </header>
           <div class="svg-wrap" id="svg-left"></div>
+          <div class="joint-thumb is-hidden" id="joint-left" hidden></div>
           <pre class="dims" id="dims-left"></pre>
         </article>
         <article class="part" data-part="rightEnd">
-          <h2>Right End</h2>
+          <header class="part-head">
+            <h2>Right End</h2>
+            <div class="part-actions">
+              <button type="button" class="face-flip" data-target="right" aria-pressed="false">
+                Flip Part (Face A / B)
+              </button>
+              <button type="button" class="joint-toggle" data-target="right" aria-pressed="false">
+                Joint Preview
+              </button>
+            </div>
+          </header>
           <div class="svg-wrap" id="svg-right"></div>
+          <div class="joint-thumb is-hidden" id="joint-right" hidden></div>
           <pre class="dims" id="dims-right"></pre>
         </article>
         <article class="part" data-part="bottom">
-          <h2>Bottom</h2>
+          <header class="part-head">
+            <h2>Bottom</h2>
+            <div class="part-actions">
+              <button type="button" class="face-flip" data-target="bottom" aria-pressed="false">
+                Flip Part (Face A / B)
+              </button>
+              <button type="button" class="joint-toggle" data-target="bottom" aria-pressed="false">
+                Joint Preview
+              </button>
+            </div>
+          </header>
           <div class="svg-wrap" id="svg-bottom"></div>
+          <div class="joint-thumb is-hidden" id="joint-bottom" hidden></div>
           <pre class="dims" id="dims-bottom"></pre>
         </article>
       </section>
