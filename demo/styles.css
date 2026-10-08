@@ -118,15 +118,63 @@ body {
 }
 
 .globals {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .globals h2,
-.part h2 {
+.part h2,
+.view-toggle h2,
+.iso-panel h2 {
   margin: 0 0 0.65rem;
   font-size: 0.8rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.view-toggle {
+  margin-bottom: 1.25rem;
+}
+
+.toggle {
+  display: inline-flex;
+  border: 1px solid rgba(42, 36, 28, 0.16);
+  background: rgba(255, 251, 242, 0.7);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.toggle-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.7rem 1.1rem;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.toggle-btn:hover {
+  color: var(--ink);
+}
+
+.toggle-btn.is-active {
+  background: var(--ink);
+  color: #f7f1e4;
+}
+
+.view-hint {
+  margin: 0.55rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.is-hidden {
+  display: none !important;
 }
 
 .globals dl {
@@ -279,6 +327,93 @@ body {
   color: var(--ink);
   white-space: pre-wrap;
   overflow-x: auto;
+}
+
+.iso-view {
+  margin-top: 0.25rem;
+}
+
+.iso-panel {
+  padding: 1rem 1.1rem 1.15rem;
+  background: var(--panel);
+  border: 1px solid rgba(42, 36, 28, 0.1);
+  box-shadow: var(--shadow);
+  animation: rise 420ms ease both;
+}
+
+.iso-lede {
+  margin: 0 0 0.85rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  max-width: 40rem;
+}
+
+.iso-wrap {
+  aspect-ratio: 16 / 10;
+  min-height: 320px;
+}
+
+.iso-stock {
+  fill: #c4a574;
+  stroke: var(--stock-edge);
+  stroke-width: 0.12;
+}
+
+.iso-face-top {
+  fill: #d2b48a;
+  stroke: var(--stock-edge);
+  stroke-width: 0.12;
+}
+
+.iso-face-side {
+  fill: #b89563;
+  stroke: var(--stock-edge);
+  stroke-width: 0.12;
+}
+
+.iso-deck {
+  fill: #b08968;
+  stroke: var(--stock-edge);
+  stroke-width: 0.12;
+}
+
+.iso-deck-top {
+  fill: #c9a27a;
+  stroke: var(--stock-edge);
+  stroke-width: 0.12;
+}
+
+.iso-pocket {
+  fill: rgba(181, 74, 42, 0.55);
+  stroke: var(--joinery);
+  stroke-width: 0.14;
+}
+
+.iso-tongue {
+  fill: rgba(181, 74, 42, 0.42);
+  stroke: var(--joinery);
+  stroke-width: 0.14;
+}
+
+.iso-label {
+  fill: var(--ink);
+  font-family: "DM Sans", sans-serif;
+  font-size: 2.4px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.iso-callout {
+  fill: var(--joinery);
+  font-family: "DM Sans", sans-serif;
+  font-size: 2.1px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  pointer-events: none;
 }
 
 @media (max-width: 880px) {

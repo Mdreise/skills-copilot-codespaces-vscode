@@ -47,7 +47,22 @@
         <dl id="globals"></dl>
       </section>
 
-      <section class="parts" aria-label="Computed parts">
+      <section class="view-toggle" aria-label="Builder view mode">
+        <h2>Builder view</h2>
+        <div class="toggle" role="group" aria-label="Canvas view">
+          <button type="button" id="view-parts" class="toggle-btn is-active" aria-pressed="true">
+            Parts
+          </button>
+          <button type="button" id="view-iso" class="toggle-btn" aria-pressed="false">
+            Exploded Iso
+          </button>
+        </div>
+        <p class="view-hint" id="view-hint">
+          Flat part canvases with internal dado pockets and deck tongues.
+        </p>
+      </section>
+
+      <section class="parts" id="parts-view" aria-label="Computed parts">
         <article class="part" data-part="leftEnd">
           <h2>Left End</h2>
           <div class="svg-wrap" id="svg-left"></div>
@@ -62,6 +77,18 @@
           <h2>Bottom</h2>
           <div class="svg-wrap" id="svg-bottom"></div>
           <pre class="dims" id="dims-bottom"></pre>
+        </article>
+      </section>
+
+      <section class="iso-view is-hidden" id="iso-view" aria-label="Exploded isometric assembly" hidden>
+        <article class="iso-panel">
+          <h2>Exploded isometric</h2>
+          <p class="iso-lede">
+            Ends slide out on X; the deck drops on Z so each blind dado pocket
+            lines up with its matching tongue.
+          </p>
+          <div class="svg-wrap iso-wrap" id="svg-iso"></div>
+          <pre class="dims" id="dims-iso"></pre>
         </article>
       </section>
     </div>
