@@ -1,17 +1,23 @@
-import { describe, it } from 'node:test';
+import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   BaseCarcass,
   GLOBAL,
   DEFAULT_CARCASS,
   bottomLength,
+  resetJobDefaults,
 } from '../src/carcass/index.js';
+
+beforeEach(() => {
+  resetJobDefaults();
+});
 
 describe('global parameters', () => {
   it('uses 5/8" material with 1/4" deep blind dado and 1/2" shoulder', () => {
     assert.equal(GLOBAL.materialThickness, 5 / 8);
     assert.equal(GLOBAL.dadoDepth, 1 / 4);
     assert.equal(GLOBAL.blindShoulder, 1 / 2);
+    assert.equal(GLOBAL.frontShoulder, 1 / 2);
   });
 });
 
@@ -128,7 +134,7 @@ describe('BaseCarcass', () => {
 
   it('rejects invalid envelope values', () => {
     assert.throws(() => new BaseCarcass({ height: 0 }), /height/);
-    assert.throws(() => new BaseCarcass({ depth: GLOBAL.blindShoulder }), /blind shoulder/);
+    assert.throws(() => new BaseCarcass({ depth: GLOBAL.blindShoulder }), /Shoulders|less than panel depth/);
     assert.throws(
       () => new BaseCarcass({ width: 2 * GLOBAL.materialThickness }),
       /ends/,

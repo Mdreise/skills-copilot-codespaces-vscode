@@ -29,15 +29,28 @@ const isoView = document.querySelector('#iso-view');
 const viewPartsBtn = document.querySelector('#view-parts');
 const viewIsoBtn = document.querySelector('#view-iso');
 const viewHint = document.querySelector('#view-hint');
+const dadoModeEl = document.querySelector('#dado-mode');
+const frontShoulderEl = document.querySelector('#front-shoulder');
+const rearShoulderEl = document.querySelector('#rear-shoulder');
+const bitDiameterEl = document.querySelector('#bit-diameter');
+const cornerReliefEl = document.querySelector('#corner-relief');
+
+function syncJobControls() {
+  dadoModeEl.value = GLOBAL.dadoMode;
+  frontShoulderEl.value = String(GLOBAL.frontShoulder);
+  rearShoulderEl.value = String(GLOBAL.rearShoulder);
+  bitDiameterEl.value = String(GLOBAL.bitDiameter);
+  cornerReliefEl.value = GLOBAL.cornerRelief;
+}
 
 function renderGlobals() {
   globalsEl.innerHTML = `
     <div><dt>Material</dt><dd>${fmtInch(GLOBAL.materialThickness)}"</dd></div>
     <div><dt>Dado depth</dt><dd>${fmtInch(GLOBAL.dadoDepth)}"</dd></div>
-    <div><dt>Blind stop</dt><dd>${fmtInch(GLOBAL.blindShoulder)}"</dd></div>
-    <div><dt>Back rabbet</dt><dd>${fmtInch(GLOBAL.backThickness)}"</dd></div>
-    <div><dt>Confirmat</dt><dd>Ø${Math.round(inchToMm(GLOBAL.confirmatDiameter))} mm</dd></div>
-    <div><dt>Pitch</dt><dd>${Math.round(inchToMm(GLOBAL.confirmatPitch))} mm</dd></div>
+    <div><dt>Front stop</dt><dd>${fmtInch(GLOBAL.frontShoulder)}"</dd></div>
+    <div><dt>Bit ⌀</dt><dd>${fmtInch(GLOBAL.bitDiameter)}"</dd></div>
+    <div><dt>Relief</dt><dd>${GLOBAL.cornerRelief}</dd></div>
+    <div><dt>Mode</dt><dd>${GLOBAL.dadoMode}</dd></div>
   `;
 }
 
@@ -45,10 +58,13 @@ function endDims(part) {
   const dado = part.features.find((f) => f.kind === 'dado');
   const throughs = part.features.filter((f) => f.kind === 'confirmat-through');
   const d = part.dimensions;
+  const bones = dado.dogBones?.length
+    ? ` · ${dado.dogBones.length} dog-bones`
+    : '';
   return [
     `${fmtInch(d.height)}" H × ${fmtInch(d.width)}" D × ${fmtInch(d.thickness)}" T`,
-    `Face A dado: ${fmtInch(dado.depth)}" deep × ${fmtInch(dado.width)}" wide · ${fmtInch(dado.blindShoulder)}" stop`,
-    `Confirmats: ${throughs.length}× Ø${Math.round(inchToMm(GLOBAL.confirmatDiameter))} mm through`,
+    `${dado.mode} dado: ${fmtInch(dado.depth)}" deep × ${fmtInch(dado.width)}" wide · front ${fmtInch(dado.frontShoulder)}"${bones}`,
+    `Confirmats: ${throughs.length}× Ø${Math.round(inchToMm(GLOBAL.confirmatDiameter))} mm · bit r ${fmtInch(GLOBAL.bitRadius)}"`,
   ].join('\n');
 }
 
@@ -56,9 +72,13 @@ function bottomDims(part) {
   const tenon = part.features.find((f) => f.kind === 'tenon');
   const pilots = part.features.filter((f) => f.kind === 'confirmat-pilot');
   const d = part.dimensions;
+  const corner =
+    tenon.cornerRadius > 0
+      ? `rounded r=${fmtInch(tenon.cornerRadius)}"`
+      : 'square corners (dog-bone pocket)';
   return [
-    `${fmtInch(d.length)}" L × ${fmtInch(d.width)}" D × ${fmtInch(d.thickness)}" T`,
-    `Tongues: ${fmtInch(tenon.depth)}" × ${fmtInch(tenon.length)}" · ${fmtInch(tenon.blindShoulder)}" stop`,
+    `${fmtInch(d.length)}" L (= clear ${fmtInch(d.clearOpening)}" + 2×${fmtInch(GLOBAL.dadoDepth)}") × ${fmtInch(d.width)}" D`,
+    `Shoulder notches: ${fmtInch(part.frontShoulderNotch)}" · tongues ${fmtInch(tenon.length)}" · ${corner}`,
     `Pilots: ${pilots.length}× Ø${Math.round(inchToMm(GLOBAL.confirmatDiameter))} × ${Math.round(inchToMm(GLOBAL.confirmatPilotDepth))} mm deep`,
   ].join('\n');
 }
@@ -67,8 +87,8 @@ function isoDims() {
   const ex = explodeOffsets(carcass.envelope);
   return [
     `explode: left ${fmtInch(Math.abs(ex.leftX))}" −X · right ${fmtInch(ex.rightX)}" +X`,
-    `deck ${fmtInch(Math.abs(ex.bottomZ))}" −Z (tongues align to pockets)`,
-    `pocket ${fmtInch(GLOBAL.dadoDepth)}" deep · stop ${fmtInch(GLOBAL.blindShoulder)}"`,
+    `deck ${fmtInch(Math.abs(ex.bottomZ))}" −Z · relief ${GLOBAL.cornerRelief}`,
+    `${GLOBAL.dadoMode} pocket ${fmtInch(GLOBAL.dadoDepth)}" deep · front stop ${fmtInch(GLOBAL.frontShoulder)}"`,
   ].join('\n');
 }
 
@@ -111,8 +131,8 @@ function setView(mode) {
   isoView.hidden = !isIso;
 
   viewHint.textContent = isIso
-    ? 'Isometric explode: side pockets and deck tongues stay visible in relation.'
-    : 'Part cards with Face A/B flip and joint preview.';
+    ? 'Isometric explode: verify tenon into blind mortise before nesting.'
+    : 'Hover dados for shoulder / depth / bit-radius callouts. Flip Face A/B.';
 
   render();
 }
@@ -147,6 +167,8 @@ function render() {
   heightInput.value = String(carcass.height);
   widthInput.value = String(carcass.width);
   depthInput.value = String(carcass.depth);
+  syncJobControls();
+  renderGlobals();
 
   if (viewMode === 'iso') {
     document.querySelector('#svg-iso').innerHTML = renderIsoAssembly(carcass, {
@@ -173,13 +195,38 @@ function bind(input, setter) {
   });
 }
 
-renderGlobals();
+function applyJobPatch(patch) {
+  try {
+    carcass.setJobDefaults(patch);
+  } catch {
+    syncJobControls();
+  }
+}
+
 render();
 carcass.onChange(render);
 
 bind(heightInput, (v) => carcass.setHeight(v));
 bind(widthInput, (v) => carcass.setWidth(v));
 bind(depthInput, (v) => carcass.setDepth(v));
+
+dadoModeEl.addEventListener('change', () =>
+  applyJobPatch({ dadoMode: /** @type {'blind'|'stopped'|'through'} */ (dadoModeEl.value) }),
+);
+frontShoulderEl.addEventListener('input', () =>
+  applyJobPatch({ frontShoulder: Number(frontShoulderEl.value) }),
+);
+rearShoulderEl.addEventListener('input', () =>
+  applyJobPatch({ rearShoulder: Number(rearShoulderEl.value) }),
+);
+bitDiameterEl.addEventListener('change', () =>
+  applyJobPatch({ bitDiameter: Number(bitDiameterEl.value) }),
+);
+cornerReliefEl.addEventListener('change', () =>
+  applyJobPatch({
+    cornerRelief: /** @type {'dogbone'|'rounded-tenon'} */ (cornerReliefEl.value),
+  }),
+);
 
 viewPartsBtn.addEventListener('click', () => setView('parts'));
 viewIsoBtn.addEventListener('click', () => setView('iso'));

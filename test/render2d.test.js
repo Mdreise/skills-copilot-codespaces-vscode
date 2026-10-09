@@ -1,13 +1,18 @@
-import { describe, it } from 'node:test';
+import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   BaseCarcass,
   GLOBAL,
+  resetJobDefaults,
   renderPartSvg,
   renderEndSvg,
   renderBottomSvg,
   renderJointPreview,
 } from '../src/carcass/index.js';
+
+beforeEach(() => {
+  resetJobDefaults();
+});
 
 describe('renderPartSvg — Face A machining', () => {
   it('renders Face A dados as gray inset fill with dashed cut path', () => {

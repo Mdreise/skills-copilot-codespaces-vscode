@@ -131,6 +131,67 @@ body {
   text-transform: uppercase;
 }
 
+.job-defaults {
+  margin-bottom: 1.25rem;
+}
+
+.job-defaults h2 {
+  margin: 0 0 0.65rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.job-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.job-grid label {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.35rem 0.4rem;
+  padding: 0.75rem 0.85rem;
+  background: rgba(255, 251, 242, 0.7);
+  border: 1px solid rgba(42, 36, 28, 0.1);
+}
+
+.job-grid span {
+  grid-column: 1 / -1;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.job-grid select,
+.job-grid input {
+  width: 100%;
+  border: 0;
+  border-bottom: 2px solid var(--line);
+  background: transparent;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.15rem 0;
+  color: var(--ink);
+}
+
+.job-grid abbr {
+  align-self: end;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 1100px) {
+  .job-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 .view-toggle {
   margin-bottom: 1.25rem;
 }
@@ -347,6 +408,18 @@ body {
   stroke: #333;
   stroke-width: 0.11;
   stroke-dasharray: 0.35 0.25;
+}
+
+.dogbone {
+  fill: rgba(60, 60, 60, 0.2);
+  stroke: #222;
+  stroke-width: 0.1;
+}
+
+.relief-badge {
+  fill: var(--muted) !important;
+  font-size: 1.35px !important;
+  text-transform: none !important;
 }
 
 .dado-hidden,

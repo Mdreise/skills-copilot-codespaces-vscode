@@ -1,9 +1,10 @@
 /**
  * Standardized shop-floor part-card renderer.
  *
- * Face A — machining face: gray inset pockets, dashed cut paths,
- *          red "0.5\" Stop" tags, confirmat through-bores, rabbets.
- * Face B — opposite face: light-blue dashed hidden detail only.
+ * Face A — machining: gray inset dados, dashed cuts, dog-bones / rounded
+ *          tenons, red stop tags, confirmat bores, notched deck outline.
+ * Face B — light-blue dashed hidden detail only.
+ * Hover titles carry Front Shoulder, Dado Depth, Groove Width, Bit Radius.
  */
 
 import { GLOBAL, inchToMm } from './parameters.js';
@@ -19,7 +20,25 @@ function fmtMm(n, digits = 0) {
 }
 
 /**
- * Hatch pattern def for rabbets.
+ * @param {object} hover
+ */
+function hoverTitle(hover) {
+  if (!hover) return '';
+  const lines = [
+    `Front Shoulder Offset: ${fmtInch(hover.frontShoulderOffset ?? 0)}"`,
+    hover.rearShoulderOffset
+      ? `Rear Shoulder Offset: ${fmtInch(hover.rearShoulderOffset)}"`
+      : null,
+    `Dado Depth: ${fmtInch(hover.dadoDepth)}"`,
+    `Material Groove Width: ${fmtInch(hover.materialGrooveWidth)}"`,
+    `Bit Radius Allowance: ${fmtInch(hover.bitRadiusAllowance)}"`,
+    hover.cornerRelief ? `Corner Relief: ${hover.cornerRelief}` : null,
+    hover.cornerRadius ? `Tenon Corner Radius: ${fmtInch(hover.cornerRadius)}"` : null,
+  ].filter(Boolean);
+  return lines.join(' · ');
+}
+
+/**
  * @param {string} id
  */
 function hatchDef(id) {
@@ -31,27 +50,77 @@ function hatchDef(id) {
 }
 
 /**
+ * Dog-bone ear path (45° overcut circle at blind corner).
+ * @param {{ cx: number, cy: number, r: number, id: string }} ear
+ * @param {number} svgY  flipped Y for end elevation
+ */
+function dogBonePath(ear, svgY) {
+  return `
+    <circle
+      class="dogbone"
+      data-ear="${ear.id}"
+      cx="${ear.cx}"
+      cy="${svgY}"
+      r="${ear.r}"
+    />
+  `;
+}
+
+/**
+ * Rounded rectangle path for tenon with fillet at front (blind) corners.
+ * @param {{ x: number, y: number, width: number, height: number }} rect
+ * @param {number} radius
+ * @param {'left' | 'right'} side
+ */
+function roundedTenonPath(rect, radius, side) {
+  const r = Math.min(radius, rect.width / 2, rect.height / 2);
+  const { x, y, width: w, height: h } = rect;
+  // Fillet the front corners of the tongue (min-y end in plan view)
+  if (side === 'left') {
+    // front-left outer + front-right (toward panel) at y
+    return [
+      `M ${x} ${y + r}`,
+      `A ${r} ${r} 0 0 1 ${x + r} ${y}`,
+      `L ${x + w} ${y}`,
+      `L ${x + w} ${y + h}`,
+      `L ${x} ${y + h}`,
+      'Z',
+    ].join(' ');
+  }
+  return [
+    `M ${x} ${y}`,
+    `L ${x + w - r} ${y}`,
+    `A ${r} ${r} 0 0 1 ${x + w} ${y + r}`,
+    `L ${x + w} ${y + h}`,
+    `L ${x} ${y + h}`,
+    'Z',
+  ].join(' ');
+}
+
+/**
  * @param {object} part
  * @param {'A' | 'B'} face
  * @param {object} feature
  */
 function renderDado(part, face, feature) {
-  const { rect, depth, width, blindShoulder, label, stopLabel } = feature;
+  const { rect, depth, width, frontShoulder, stopLabel, dogBones = [], hover } = feature;
+  const title = hoverTitle(hover);
+
   if (face === 'B') {
     return `
-      <rect
-        class="dado-hidden"
-        data-feature="${feature.id}"
-        data-face="B"
-        x="${rect.x}"
-        y="${part.dimensions.v - rect.y - rect.height}"
-        width="${rect.width}"
-        height="${rect.height}"
-      />
+      <g class="dado-hidden-group" data-feature="${feature.id}" data-face="B">
+        <title>${title}</title>
+        <rect
+          class="dado-hidden"
+          x="${rect.x}"
+          y="${part.dimensions.v - rect.y - rect.height}"
+          width="${rect.width}"
+          height="${rect.height}"
+        />
+      </g>
     `;
   }
 
-  // Face A: y grows up in shop elevation — flip V so bottom is at bottom of SVG
   const x = rect.x;
   const y = part.dimensions.v - rect.y - rect.height;
   const calloutX = x + rect.width * 0.45;
@@ -59,14 +128,31 @@ function renderDado(part, face, feature) {
   const stopX = x;
   const stopY = y + rect.height / 2;
 
-  return `
-    <g class="dado-machine" data-feature="${feature.id}" data-face="A">
-      <rect class="dado-fill" x="${x}" y="${y}" width="${rect.width}" height="${rect.height}" />
-      <rect class="dado-cut" x="${x}" y="${y}" width="${rect.width}" height="${rect.height}" />
-      <g class="stop-tag" data-stop="${blindShoulder}">
+  const bones = (dogBones || [])
+    .map((ear) => {
+      // Map ear cy (part UV y from bottom) into SVG y
+      const svgY = part.dimensions.v - ear.cy;
+      return dogBonePath(ear, svgY);
+    })
+    .join('\n');
+
+  const stop =
+    frontShoulder > 0 && stopLabel
+      ? `
+      <g class="stop-tag" data-stop="${frontShoulder}">
         <rect class="stop-tag-bg" x="${stopX - 0.15}" y="${stopY - 1.5}" width="5.2" height="3" rx="0.3" />
         <text class="stop-tag-label" x="${stopX + 2.45}" y="${stopY + 0.55}" text-anchor="middle">${stopLabel}</text>
-      </g>
+      </g>`
+      : '';
+
+  return `
+    <g class="dado-machine" data-feature="${feature.id}" data-face="A"
+      data-mode="${feature.mode}" data-relief="${feature.cornerRelief}">
+      <title>${title}</title>
+      <rect class="dado-fill" x="${x}" y="${y}" width="${rect.width}" height="${rect.height}" />
+      <rect class="dado-cut" x="${x}" y="${y}" width="${rect.width}" height="${rect.height}" />
+      ${bones}
+      ${stop}
       <g class="dado-callout">
         <line class="callout-leader" x1="${calloutX}" y1="${y}" x2="${calloutX}" y2="${calloutY + 0.6}" />
         <polygon class="callout-arrow" points="${calloutX},${y} ${calloutX - 0.55},${y - 1.1} ${calloutX + 0.55},${y - 1.1}" />
@@ -110,8 +196,6 @@ function renderRabbet(part, face, feature, hatchId) {
  * @param {object} part
  */
 function renderThrough(feature, part) {
-  // True Ø5 mm is ~0.2" — boost display radius so shop cards stay readable
-  // while preserving data-diameter for CNC.
   const r = Math.max(feature.diameter / 2, 0.22);
   const cx = feature.cx;
   const cy = part.dimensions.v - feature.cy;
@@ -146,7 +230,6 @@ function renderPilot(feature, part) {
 }
 
 /**
- * Pitch dimension between confirmat centers.
  * @param {object[]} throughs
  * @param {object} part
  */
@@ -169,7 +252,6 @@ function renderPitch(throughs, part) {
 }
 
 /**
- * Edgeband lines on finished edges only (excluded where rabbet/dado breaks through).
  * @param {object} part
  */
 function renderEdgebands(part) {
@@ -184,27 +266,44 @@ function renderEdgebands(part) {
     if (eb.top) lines.push(`<line class="edgeband" data-edge="top" x1="0" y1="0" x2="${u}" y2="0" />`);
     if (eb.bottom) lines.push(`<line class="edgeband" data-edge="bottom" x1="0" y1="${v}" x2="${u}" y2="${v}" />`);
   } else {
-    // bottom plan: y=0 front
-    if (eb.front) lines.push(`<line class="edgeband" data-edge="front" x1="0" y1="0" x2="${u}" y2="0" />`);
+    if (eb.front) {
+      // Flush front edge between notches
+      const t = GLOBAL.dadoDepth;
+      lines.push(
+        `<line class="edgeband" data-edge="front" x1="${t}" y1="0" x2="${u - t}" y2="0" />`,
+      );
+    }
     if (eb.rear) lines.push(`<line class="edgeband" data-edge="rear" x1="0" y1="${v}" x2="${u}" y2="${v}" />`);
-    if (eb.left) lines.push(`<line class="edgeband" data-edge="left" x1="0" y1="0" x2="0" y2="${v}" />`);
-    if (eb.right) lines.push(`<line class="edgeband" data-edge="right" x1="${u}" y1="0" x2="${u}" y2="${v}" />`);
   }
   return lines.join('\n');
 }
 
 /**
- * Tenon / tongue on deck Face A.
  * @param {object} feature
  * @param {'A' | 'B'} face
  */
 function renderTenon(feature, face) {
-  const { rect } = feature;
+  const { rect, cornerRadius = 0, side, hover } = feature;
+  const title = hoverTitle(hover);
+
   if (face === 'B') {
     return `<rect class="tenon-hidden" data-feature="${feature.id}" x="${rect.x}" y="${rect.y}" width="${rect.width}" height="${rect.height}" />`;
   }
+
+  if (cornerRadius > 0) {
+    const d = roundedTenonPath(rect, cornerRadius, side);
+    return `
+      <g class="tenon-machine" data-feature="${feature.id}" data-corner="rounded" data-radius="${cornerRadius}">
+        <title>${title}</title>
+        <path class="tenon-fill" d="${d}" />
+        <path class="tenon-cut" d="${d}" />
+      </g>
+    `;
+  }
+
   return `
-    <g class="tenon-machine" data-feature="${feature.id}">
+    <g class="tenon-machine" data-feature="${feature.id}" data-corner="square">
+      <title>${title}</title>
       <rect class="tenon-fill" x="${rect.x}" y="${rect.y}" width="${rect.width}" height="${rect.height}" />
       <rect class="tenon-cut" x="${rect.x}" y="${rect.y}" width="${rect.width}" height="${rect.height}" />
     </g>
@@ -212,8 +311,25 @@ function renderTenon(feature, face) {
 }
 
 /**
- * Render a part card canvas for Face A or Face B.
- *
+ * @param {object} part
+ * @param {'A' | 'B'} face
+ */
+function renderStock(part, face) {
+  const u = part.dimensions.u;
+  const v = part.dimensions.v;
+  if (part.role === 'bottom' && part.outlinePath) {
+    return `
+      <path class="stock" d="${part.outlinePath}" data-notched="true" data-front-shoulder="${part.frontShoulderNotch ?? 0}" />
+      <path class="cut-perimeter" data-cut="perimeter" d="${part.outlinePath}" />
+    `;
+  }
+  return `
+    <rect class="stock" x="0" y="0" width="${u}" height="${v}" />
+    <rect class="cut-perimeter" data-cut="perimeter" x="0" y="0" width="${u}" height="${v}" />
+  `;
+}
+
+/**
  * @param {object} part
  * @param {{ face?: 'A' | 'B' }} [opts]
  * @returns {string}
@@ -245,19 +361,25 @@ export function renderPartSvg(part, opts = {}) {
   }
 
   const faceTitle = part.faceLabels?.[face] ?? `Face ${face}`;
+  const reliefNote =
+    face === 'A'
+      ? `relief: ${GLOBAL.cornerRelief} · bit ⌀ ${fmtInch(GLOBAL.bitDiameter)}"`
+      : '';
 
   return `
     <svg viewBox="0 0 ${viewW} ${viewH}" role="img"
       aria-label="${part.name} ${faceTitle}"
       data-part="${part.id}"
-      data-face="${face}">
+      data-face="${face}"
+      data-dado-mode="${GLOBAL.dadoMode}"
+      data-corner-relief="${GLOBAL.cornerRelief}">
       <defs>${hatchDef(hatchId)}</defs>
       <g transform="translate(${pad} ${pad})">
-        <rect class="stock" x="0" y="0" width="${u}" height="${v}" />
-        <rect class="cut-perimeter" data-cut="perimeter" x="0" y="0" width="${u}" height="${v}" />
+        ${renderStock(part, face)}
         ${renderEdgebands(part)}
         ${ops.join('\n')}
         <text class="anno face-badge" x="1.2" y="-2.5" text-anchor="start">${faceTitle}</text>
+        <text class="anno relief-badge" x="${u}" y="-2.5" text-anchor="end">${reliefNote}</text>
         <text class="anno" x="0" y="${v + 5}" text-anchor="start">front</text>
         <text class="anno" x="${u}" y="${v + 5}" text-anchor="end">rear</text>
       </g>

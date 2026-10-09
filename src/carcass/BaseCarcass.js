@@ -9,9 +9,11 @@
 import {
   DEFAULT_CARCASS,
   GLOBAL,
+  patchJobDefaults,
   requirePositive,
 } from './parameters.js';
 import { buildParts } from './parts.js';
+import { dadoSpan } from './dadoEngine.js';
 
 /**
  * @typedef {'height' | 'width' | 'depth'} EnvelopeAxis
@@ -127,6 +129,19 @@ export class BaseCarcass {
   }
 
   /**
+   * Patch job defaults (dado mode, bit, relief, shoulders).
+   * Parts and mating tenons recompute immediately.
+   * @param {Parameters<typeof patchJobDefaults>[0]} patch
+   * @returns {this}
+   */
+  setJobDefaults(patch) {
+    patchJobDefaults(patch);
+    this._recompute();
+    this._emit();
+    return this;
+  }
+
+  /**
    * Subscribe to automatic recomputes (e.g. UI / cutlist).
    * @param {(carcass: BaseCarcass) => void} listener
    * @returns {() => void} unsubscribe
@@ -141,7 +156,17 @@ export class BaseCarcass {
    */
   toJSON() {
     return {
-      globals: { ...GLOBAL },
+      globals: {
+        materialThickness: GLOBAL.materialThickness,
+        dadoDepth: GLOBAL.dadoDepth,
+        frontShoulder: GLOBAL.frontShoulder,
+        rearShoulder: GLOBAL.rearShoulder,
+        dadoMode: GLOBAL.dadoMode,
+        bitDiameter: GLOBAL.bitDiameter,
+        bitRadius: GLOBAL.bitRadius,
+        cornerRelief: GLOBAL.cornerRelief,
+        blindShoulder: GLOBAL.blindShoulder,
+      },
       envelope: this.envelope,
       parts: this.parts,
     };
@@ -153,12 +178,9 @@ export class BaseCarcass {
   }
 
   _assertJoineryFits() {
-    const { blindShoulder, dadoDepth, materialThickness } = GLOBAL;
-    if (this._depth <= blindShoulder) {
-      throw new Error(
-        `depth (${this._depth}) must be greater than blind shoulder (${blindShoulder})`,
-      );
-    }
+    const { dadoDepth, materialThickness } = GLOBAL;
+    // Validates shoulder span for current dado mode
+    dadoSpan(this._depth);
     if (this._width <= 2 * materialThickness) {
       throw new Error(
         `width (${this._width}) must leave room for both ${materialThickness}" ends`,

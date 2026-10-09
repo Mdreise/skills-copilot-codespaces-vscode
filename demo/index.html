@@ -46,6 +46,45 @@
         <dl id="globals"></dl>
       </section>
 
+      <section class="job-defaults" aria-label="Job defaults for dado and CNC relief">
+        <h2>Job defaults</h2>
+        <div class="job-grid">
+          <label>
+            <span>Dado mode</span>
+            <select id="dado-mode">
+              <option value="blind">Blind (front shoulder)</option>
+              <option value="stopped">Stopped (front + rear)</option>
+              <option value="through">Through (no shoulders)</option>
+            </select>
+          </label>
+          <label>
+            <span>Front shoulder</span>
+            <input id="front-shoulder" type="number" min="0" max="4" step="0.125" />
+            <abbr title="inches">in</abbr>
+          </label>
+          <label>
+            <span>Rear shoulder</span>
+            <input id="rear-shoulder" type="number" min="0" max="4" step="0.125" />
+            <abbr title="inches">in</abbr>
+          </label>
+          <label>
+            <span>Bit diameter</span>
+            <select id="bit-diameter">
+              <option value="0.25">1/4"</option>
+              <option value="0.375" selected>3/8"</option>
+              <option value="0.5">1/2"</option>
+            </select>
+          </label>
+          <label>
+            <span>Corner relief</span>
+            <select id="corner-relief">
+              <option value="dogbone">Dog-bone (pocket)</option>
+              <option value="rounded-tenon">Rounded tenon</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
       <section class="view-toggle" aria-label="Builder view mode">
         <h2>Builder view</h2>
         <div class="toggle" role="group" aria-label="Canvas view">

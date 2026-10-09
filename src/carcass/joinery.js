@@ -1,28 +1,23 @@
 /**
  * Face-aware joinery features for the part-card renderer.
- *
- * Face A = machining face (operations visible as cut overlays)
- * Face B = opposite / non-machined face (hidden detail only)
+ * Dados, tenons, rabbets, confirmats — driven by job defaults + dado engine.
  */
 
 import { GLOBAL } from './parameters.js';
+import {
+  dadoSpan,
+  dogBoneEars,
+  tenonCornerRadius,
+  useDogBoneOnPocket,
+  tenonShoulderNotches,
+} from './dadoEngine.js';
 
 /**
  * @typedef {'A' | 'B'} Face
- * @typedef {'dado' | 'tenon' | 'rabbet' | 'confirmat-through' | 'confirmat-pilot'} FeatureKind
- *
- * @typedef {object} Rect2
- * @property {number} x
- * @property {number} y
- * @property {number} width
- * @property {number} height
+ * @typedef {'dado' | 'tenon' | 'rabbet' | 'groove' | 'confirmat-through' | 'confirmat-pilot'} FeatureKind
  */
 
 /**
- * Place confirmat centers along a joint run (32 mm pitch),
- * inset from each end of the open span. Caps count for shop-typical
- * deck-to-end joints (2–5 fasteners).
- *
  * @param {number} runStart
  * @param {number} runLength
  * @returns {number[]}
@@ -44,7 +39,7 @@ export function confirmatCenters(runStart, runLength) {
 }
 
 /**
- * Blind dado on an end panel's machining face (Face A = inside).
+ * Bottom-into-end dado on Face A (inside).
  * Part UV: x = front→back, y = bottom→top.
  *
  * @param {'left' | 'right'} side
@@ -52,40 +47,53 @@ export function confirmatCenters(runStart, runLength) {
  * @param {number} [carcassHeight]
  */
 export function endBottomDado(side, carcassDepth, carcassHeight = 34.5) {
-  const { materialThickness, dadoDepth, blindShoulder } = GLOBAL;
+  const { materialThickness, dadoDepth, bitDiameter } = GLOBAL;
+  const span = dadoSpan(carcassDepth);
+  const rect = {
+    x: span.startX,
+    y: 0,
+    width: span.length,
+    height: materialThickness,
+  };
+
   return {
     id: `${side}-bottom-dado`,
     kind: /** @type {FeatureKind} */ ('dado'),
-    joinery: 'blind-dado',
+    joinery: span.mode === 'through' ? 'through-dado' : span.mode === 'stopped' ? 'stopped-dado' : 'blind-dado',
+    mode: span.mode,
     side,
-    /** Machined on the inside face */
     face: /** @type {Face} */ ('A'),
     depth: dadoDepth,
     width: materialThickness,
-    length: carcassDepth - blindShoulder,
-    blindShoulder,
-    /** 2D pocket on Face A */
-    rect: {
-      x: blindShoulder,
-      y: 0,
-      width: carcassDepth - blindShoulder,
-      height: materialThickness,
-    },
+    length: span.length,
+    frontShoulder: span.frontShoulder,
+    rearShoulder: span.rearShoulder,
+    /** @deprecated alias */
+    blindShoulder: span.frontShoulder,
+    bitDiameter,
+    bitRadius: bitDiameter / 2,
+    cornerRelief: GLOBAL.cornerRelief,
+    dogBones: useDogBoneOnPocket() && span.frontShoulder > 0 ? dogBoneEars(rect) : [],
+    rect,
     label: `Dado: ${dadoDepth}" deep × ${materialThickness}" wide`,
-    stopLabel: `${blindShoulder}" Stop`,
-    // Keep legacy Box3 fields for iso / older tests
+    stopLabel: span.frontShoulder > 0 ? `${span.frontShoulder}" Stop` : null,
+    hover: {
+      frontShoulderOffset: span.frontShoulder,
+      rearShoulderOffset: span.rearShoulder,
+      dadoDepth,
+      materialGrooveWidth: materialThickness,
+      bitRadiusAllowance: bitDiameter / 2,
+      mode: span.mode,
+      cornerRelief: GLOBAL.cornerRelief,
+    },
     x: side === 'left' ? materialThickness - dadoDepth : 0,
-    y: blindShoulder,
+    y: span.startX,
     z: 0,
-    // unused height param reserved for future shelf dados
     _partHeight: carcassHeight,
   };
 }
 
 /**
- * Rear rabbet for a captured 1/4" back on an end panel.
- * Breaks through the rear edge → edgeband excluded on that edge.
- *
  * @param {'left' | 'right'} side
  * @param {number} carcassDepth
  * @param {number} carcassHeight
@@ -113,16 +121,13 @@ export function endBackRabbet(side, carcassDepth, carcassHeight) {
 }
 
 /**
- * Confirmat through-bores on the end Face A (into the bottom dado).
- *
  * @param {'left' | 'right'} side
  * @param {number} carcassDepth
  */
 export function endConfirmatThrough(side, carcassDepth) {
-  const { blindShoulder, materialThickness, confirmatDiameter } = GLOBAL;
-  const runStart = blindShoulder;
-  const runLength = carcassDepth - blindShoulder;
-  const centers = confirmatCenters(runStart, runLength);
+  const { materialThickness, confirmatDiameter } = GLOBAL;
+  const span = dadoSpan(carcassDepth);
+  const centers = confirmatCenters(span.startX, span.length);
   return centers.map((cx, i) => ({
     id: `${side}-confirmat-through-${i}`,
     kind: /** @type {FeatureKind} */ ('confirmat-through'),
@@ -137,41 +142,58 @@ export function endConfirmatThrough(side, carcassDepth) {
 }
 
 /**
- * Tongue / tenon on the deck that seats in an end dado.
- * Part UV: x = left→right, y = front→back.
+ * Mating deck tenon with shoulder notching + optional rounded corners.
  *
  * @param {'left' | 'right'} side
  * @param {number} bottomLen
  * @param {number} carcassDepth
  */
 export function bottomTenon(side, bottomLen, carcassDepth) {
-  const { materialThickness, dadoDepth, blindShoulder } = GLOBAL;
+  const { materialThickness, dadoDepth } = GLOBAL;
+  const span = dadoSpan(carcassDepth);
+  const cornerRadius = tenonCornerRadius();
+
   return {
     id: `bottom-tenon-${side}`,
     kind: /** @type {FeatureKind} */ ('tenon'),
     joinery: 'blind-dado',
+    mode: span.mode,
     side,
     face: /** @type {Face} */ ('A'),
     depth: dadoDepth,
     width: materialThickness,
-    length: carcassDepth - blindShoulder,
-    blindShoulder,
+    length: span.length,
+    frontShoulder: span.frontShoulder,
+    rearShoulder: span.rearShoulder,
+    blindShoulder: span.frontShoulder,
+    cornerRadius,
+    cornerRelief: GLOBAL.cornerRelief,
+    squareCorners: GLOBAL.cornerRelief === 'dogbone',
     rect: {
       x: side === 'left' ? 0 : bottomLen - dadoDepth,
-      y: blindShoulder,
+      y: span.startX,
       width: dadoDepth,
-      height: carcassDepth - blindShoulder,
+      height: span.length,
     },
-    // legacy
+    notches: tenonShoulderNotches(bottomLen, span.frontShoulder).filter(
+      (n) => n.side === side,
+    ),
+    hover: {
+      frontShoulderOffset: span.frontShoulder,
+      dadoDepth,
+      materialGrooveWidth: materialThickness,
+      bitRadiusAllowance: GLOBAL.bitDiameter / 2,
+      cornerRadius,
+      cornerRelief: GLOBAL.cornerRelief,
+    },
     x: side === 'left' ? 0 : bottomLen - dadoDepth,
-    y: blindShoulder,
+    y: span.startX,
     z: 0,
     height: materialThickness,
   };
 }
 
 /**
- * Rear rabbet on the deck for the captured back.
  * @param {number} bottomLen
  * @param {number} carcassDepth
  */
@@ -197,16 +219,13 @@ export function bottomBackRabbet(bottomLen, carcassDepth) {
 }
 
 /**
- * Confirmat pilot bores into the left/right edges of the deck.
- *
  * @param {'left' | 'right'} side
  * @param {number} carcassDepth
  */
 export function bottomConfirmatPilots(side, carcassDepth) {
-  const { blindShoulder, confirmatDiameter, confirmatPilotDepth } = GLOBAL;
-  const runStart = blindShoulder;
-  const runLength = carcassDepth - blindShoulder;
-  const centers = confirmatCenters(runStart, runLength);
+  const { confirmatDiameter, confirmatPilotDepth } = GLOBAL;
+  const span = dadoSpan(carcassDepth);
+  const centers = confirmatCenters(span.startX, span.length);
   return centers.map((cy, i) => ({
     id: `bottom-confirmat-pilot-${side}-${i}`,
     kind: /** @type {FeatureKind} */ ('confirmat-pilot'),
@@ -221,7 +240,7 @@ export function bottomConfirmatPilots(side, carcassDepth) {
   }));
 }
 
-/** @deprecated Use endBottomDado — kept for iso layout compatibility */
+/** @deprecated Use endBottomDado */
 export function bottomMortise(side, carcassDepth) {
   const d = endBottomDado(side, carcassDepth);
   return {

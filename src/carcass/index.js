@@ -1,4 +1,23 @@
-export { GLOBAL, DEFAULT_CARCASS, inchToMm, mmToInch } from './parameters.js';
+export {
+  GLOBAL,
+  DEFAULT_CARCASS,
+  inchToMm,
+  mmToInch,
+  patchJobDefaults,
+  getJobDefaults,
+  resetJobDefaults,
+} from './parameters.js';
+export {
+  dadoSpan,
+  clearOpening,
+  matingPanelWidth,
+  tenonShoulderNotches,
+  notchedDeckPath,
+  dogBoneEars,
+  tenonCornerRadius,
+  useDogBoneOnPocket,
+  capturedBackGroove,
+} from './dadoEngine.js';
 export {
   bottomMortise,
   bottomTenon,

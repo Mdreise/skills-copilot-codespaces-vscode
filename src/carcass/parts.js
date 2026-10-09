@@ -1,10 +1,13 @@
 /**
  * Part builders for the 3-part base carcass.
- * Each part carries Face A (machining) / Face B metadata and
- * joinery features (dados, rabbets, confirmats, tongues).
  */
 
 import { GLOBAL } from './parameters.js';
+import {
+  matingPanelWidth,
+  notchedDeckPath,
+  dadoSpan,
+} from './dadoEngine.js';
 import {
   endBottomDado,
   endBackRabbet,
@@ -15,15 +18,11 @@ import {
 } from './joinery.js';
 
 /**
- * Outside length of the bottom panel (left→right), including
- * tenon engagement into each end dado.
- *
+ * Mating deck overall width = Clear Opening + (2 × Dado Depth).
  * @param {number} carcassWidth
- * @returns {number}
  */
 export function bottomLength(carcassWidth) {
-  const { materialThickness, dadoDepth } = GLOBAL;
-  return carcassWidth - 2 * materialThickness + 2 * dadoDepth;
+  return matingPanelWidth(carcassWidth);
 }
 
 /**
@@ -37,22 +36,20 @@ export function leftEnd(height, depth) {
     name: 'Left End',
     role: 'end',
     side: 'left',
-    /** Face A = inside (machining). Face B = outside finished. */
     machiningFace: 'A',
     faceLabels: { A: 'Face A · Inside (machine)', B: 'Face B · Outside' },
     dimensions: {
       height,
       width: depth,
       thickness: materialThickness,
-      /** UV for face view */
       u: depth,
       v: height,
     },
     edgebands: {
       front: true,
-      rear: false, // broken by back rabbet
+      rear: false,
       top: true,
-      bottom: false, // sits on floor / in toe context
+      bottom: false,
     },
     features: [
       endBottomDado('left', depth, height),
@@ -101,8 +98,15 @@ export function rightEnd(height, depth) {
  * @param {number} depth
  */
 export function bottom(width, depth) {
-  const { materialThickness } = GLOBAL;
+  const { materialThickness, dadoDepth } = GLOBAL;
   const length = bottomLength(width);
+  const span = dadoSpan(depth);
+  const outlinePath = notchedDeckPath(
+    length,
+    depth,
+    span.frontShoulder,
+    dadoDepth,
+  );
 
   return {
     id: 'bottom',
@@ -116,11 +120,14 @@ export function bottom(width, depth) {
       thickness: materialThickness,
       u: length,
       v: depth,
+      clearOpening: width - 2 * materialThickness,
     },
+    outlinePath,
+    frontShoulderNotch: span.frontShoulder,
     edgebands: {
       front: true,
       rear: false,
-      left: false, // tenon into dado
+      left: false,
       right: false,
     },
     features: [

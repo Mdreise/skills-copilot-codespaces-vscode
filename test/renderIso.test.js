@@ -1,13 +1,18 @@
-import { describe, it } from 'node:test';
+import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   BaseCarcass,
   GLOBAL,
+  resetJobDefaults,
   projectIso,
   explodeOffsets,
   assemblyLayout,
   renderIsoAssembly,
 } from '../src/carcass/index.js';
+
+beforeEach(() => {
+  resetJobDefaults();
+});
 
 describe('projectIso', () => {
   it('maps world axes into a 2.5D screen plane', () => {
